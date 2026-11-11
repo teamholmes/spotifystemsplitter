@@ -1,0 +1,107 @@
+# Spotify Guitar Remover for macOS
+
+This app listens to audio routed into **BlackHole**, estimates the guitar stem
+with Demucs' six-stem AI model, and plays the mix back to a selected output
+device. Set guitar removal anywhere from 0% (unchanged) to 100% (subtract the
+estimated guitar stem). This is live processing with a buffer, not a
+zero-latency effect: expect several seconds of delay, and sound quality depends
+on the recording and model estimate.
+
+## Requirements
+
+- macOS, Spotify desktop app, and BlackHole 2ch installed.
+- Python 3.11 recommended. The Python at `/opt/homebrew/bin/python3` on the
+  setup machine is 3.14.6; the PyTorch/Demucs audio stack may not yet install
+  cleanly on that version.
+- Internet access on first launch to download the pretrained Demucs model.
+- Headphones connected to the Mac. Do not select BlackHole as the app's output.
+
+## Install
+
+If Python 3.11 is not installed, install it with Homebrew:
+
+```sh
+brew install python@3.11
+```
+
+From this project folder, create an isolated environment and install the app:
+
+```sh
+/opt/homebrew/opt/python@3.11/bin/python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+The PyTorch and model packages are large; allow time for installation. If
+Homebrew installed Python 3.11 somewhere else, use that interpreter's path for
+the `venv` command.
+
+## Route Spotify through BlackHole
+
+1. Open **Audio MIDI Setup** (in Applications > Utilities).
+2. Confirm **BlackHole 2ch** is available. If Spotify also needs to be audible
+   directly from the Mac speakers, create a **Multi-Output Device** containing
+   BlackHole 2ch and the speakers/headphones, then select that device as
+   Spotify's output. Otherwise, set Spotify's output to BlackHole 2ch.
+3. Keep the app's output device set to your headphones or speakers. Using
+   headphones avoids feeding the processed sound back into the microphone.
+4. macOS may ask permission for the terminal or Python to access audio. Allow
+   it in **System Settings > Privacy & Security > Microphone**.
+
+Device labels and available routing options can vary between macOS versions.
+
+## Run
+
+With the virtual environment active:
+
+```sh
+python guitar_remover.py
+```
+
+1. The app defaults to **BlackHole 2ch** for Spotify input when available. It
+   prefers an output device whose name identifies it as headphones, AirPods, or
+   a headset; if none is detected, it uses macOS's default output. Confirm the
+   selected devices before starting.
+2. Set **Guitar removal** to the desired percentage.
+3. Guitar removal defaults to 100%. **Spotify volume** defaults to 180% and can
+   be adjusted from 100% to 200%. This controls the app's output level, not
+   Spotify's system-wide volume. A soft limiter helps control peaks at higher
+   settings; lower the slider if you hear distortion.
+4. Start Spotify playback, then click **Start** in the app. The first run
+   downloads the `htdemucs_6s` model and can take a while.
+5. Use **Stop** before changing routing. The initial audio buffer and model
+   processing introduce several seconds of delay.
+
+At 100%, the app subtracts the AI-estimated guitar stem from the stereo mix.
+Separation is approximate: distorted guitar, dense arrangements, and guitar
+tones similar to other instruments can leave artifacts or remove some
+non-guitar sound. Lower percentages retain more guitar. The live activity
+display shows the incoming and processed signal levels; the AI indicator pulses
+while a window is being analyzed.
+
+For a cleaner separation, choose **Higher quality (slower)** before starting.
+It asks Demucs to average two shifted analyses rather than one, which can reduce
+separation artifacts at the cost of more processing time. Start with **Balanced**
+if playback becomes choppy; not every Mac can sustain the higher-quality mode
+in real time. These settings cannot fix every source of muddiness, and the
+results depend on the song and how clearly its guitar can be separated.
+If 100% removal sounds too hollow, try a lower percentage to retain some of the
+original mix. If processing falls behind, the app reports an error; stop
+playback and try Balanced.
+
+## Troubleshooting
+
+- **No BlackHole device:** check that BlackHole 2ch is installed, then click
+  **Refresh devices**. If it was just installed, restarting macOS may be
+  necessary.
+- **Spotify is silent:** check that Spotify's output is routed to BlackHole
+  (or a Multi-Output Device containing BlackHole), and that the app's output is
+  set to headphones/speakers.
+- **Permission or device error:** allow audio access for the terminal/Python in
+  macOS Privacy & Security settings and verify the selected devices are still
+  connected.
+- **Installation fails on Python 3.14:** use Python 3.11 as described above.
+- **Choppy or delayed playback:** close other demanding applications and retry.
+  The model is computationally intensive, and not every Mac can keep up with
+  live playback.
