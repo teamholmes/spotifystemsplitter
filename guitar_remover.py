@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Play Spotify through a guitar-reduction model using BlackHole as input."""
+"""Play Spotify through a stem-reduction model using BlackHole as input."""
 
 from __future__ import annotations
 
 import queue
 import threading
+import time
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 import numpy as np
+import psutil
 import sounddevice as sd
 import torch
 from demucs.apply import apply_model
@@ -44,16 +46,25 @@ def apply_playback_gain(samples: np.ndarray, gain: float) -> np.ndarray:
 class GuitarRemoverApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
-        self.root.title("Spotify Guitar Remover")
-        self.root.minsize(500, 490)
+        self.root.title("Spotify Stem Remover")
+        self.root.minsize(500, 640)
 
         self.input_devices: dict[str, int] = {}
         self.output_devices: dict[str, int] = {}
         self.remove_percent = tk.IntVar(value=100)
         self.removal_amount = 1.0
+        self.remove_vocals_percent = tk.IntVar(value=0)
+        self.vocal_removal_amount = 0.0
+        self.remove_bass_percent = tk.IntVar(value=0)
+        self.bass_removal_amount = 0.0
+        self.remove_drums_percent = tk.IntVar(value=0)
+        self.drums_removal_amount = 0.0
         self.volume_percent = tk.IntVar(value=180)
         self.playback_gain = 1.8
         self.status = tk.StringVar(value="Choose audio devices, then start.")
+        self.cpu_usage = tk.StringVar(value="System CPU usage: measuring...")
+        psutil.cpu_percent(interval=None)
+        self.last_cpu_update = time.monotonic()
         self.stop_event = threading.Event()
         self.stream_active = threading.Event()
         self.processing_active = threading.Event()
@@ -105,9 +116,59 @@ class GuitarRemoverApp:
         self.percent_label = ttk.Label(slider_frame, text="100%", width=5, anchor="e")
         self.percent_label.grid(row=0, column=1, padx=(8, 0))
 
-        ttk.Label(frame, text="Spotify volume").grid(row=4, column=0, sticky="w")
+        ttk.Label(frame, text="Vocal removal").grid(row=4, column=0, sticky="w")
+        vocal_slider_frame = ttk.Frame(frame)
+        vocal_slider_frame.grid(row=4, column=1, sticky="ew", padx=(12, 0))
+        vocal_slider_frame.columnconfigure(0, weight=1)
+        ttk.Scale(
+            vocal_slider_frame,
+            from_=0,
+            to=100,
+            variable=self.remove_vocals_percent,
+            command=self._update_vocal_percent_label,
+        ).grid(row=0, column=0, sticky="ew")
+        self.vocal_percent_label = ttk.Label(
+            vocal_slider_frame, text="0%", width=5, anchor="e"
+        )
+        self.vocal_percent_label.grid(row=0, column=1, padx=(8, 0))
+
+        ttk.Label(frame, text="Bass guitar removal").grid(
+            row=5, column=0, sticky="w"
+        )
+        bass_slider_frame = ttk.Frame(frame)
+        bass_slider_frame.grid(row=5, column=1, sticky="ew", padx=(12, 0))
+        bass_slider_frame.columnconfigure(0, weight=1)
+        ttk.Scale(
+            bass_slider_frame,
+            from_=0,
+            to=100,
+            variable=self.remove_bass_percent,
+            command=self._update_bass_percent_label,
+        ).grid(row=0, column=0, sticky="ew")
+        self.bass_percent_label = ttk.Label(
+            bass_slider_frame, text="0%", width=5, anchor="e"
+        )
+        self.bass_percent_label.grid(row=0, column=1, padx=(8, 0))
+
+        ttk.Label(frame, text="Drums removal").grid(row=6, column=0, sticky="w")
+        drums_slider_frame = ttk.Frame(frame)
+        drums_slider_frame.grid(row=6, column=1, sticky="ew", padx=(12, 0))
+        drums_slider_frame.columnconfigure(0, weight=1)
+        ttk.Scale(
+            drums_slider_frame,
+            from_=0,
+            to=100,
+            variable=self.remove_drums_percent,
+            command=self._update_drums_percent_label,
+        ).grid(row=0, column=0, sticky="ew")
+        self.drums_percent_label = ttk.Label(
+            drums_slider_frame, text="0%", width=5, anchor="e"
+        )
+        self.drums_percent_label.grid(row=0, column=1, padx=(8, 0))
+
+        ttk.Label(frame, text="Spotify volume").grid(row=7, column=0, sticky="w")
         volume_frame = ttk.Frame(frame)
-        volume_frame.grid(row=4, column=1, sticky="ew", padx=(12, 0))
+        volume_frame.grid(row=7, column=1, sticky="ew", padx=(12, 0))
         volume_frame.columnconfigure(0, weight=1)
         ttk.Scale(
             volume_frame,
@@ -120,7 +181,7 @@ class GuitarRemoverApp:
         self.volume_label.grid(row=0, column=1, padx=(8, 0))
 
         ttk.Label(frame, text="Separation quality").grid(
-            row=5, column=0, sticky="w", pady=6
+            row=8, column=0, sticky="w", pady=6
         )
         self.quality_choice = ttk.Combobox(
             frame,
@@ -129,10 +190,10 @@ class GuitarRemoverApp:
             width=24,
         )
         self.quality_choice.set("Balanced")
-        self.quality_choice.grid(row=5, column=1, sticky="w", padx=(12, 0), pady=6)
+        self.quality_choice.grid(row=8, column=1, sticky="w", padx=(12, 0), pady=6)
 
         visualizer = ttk.LabelFrame(frame, text="Live audio activity", padding=8)
-        visualizer.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(12, 4))
+        visualizer.grid(row=9, column=0, columnspan=2, sticky="ew", pady=(12, 4))
         visualizer.columnconfigure(0, weight=1)
         self.visualizer = tk.Canvas(
             visualizer,
@@ -143,25 +204,43 @@ class GuitarRemoverApp:
         self.visualizer.grid(row=0, column=0, sticky="ew")
 
         self.start_button = ttk.Button(frame, text="Start", command=self.start)
-        self.start_button.grid(row=7, column=0, sticky="w", pady=(12, 8))
+        self.start_button.grid(row=10, column=0, sticky="w", pady=(12, 8))
         self.stop_button = ttk.Button(
             frame, text="Stop", command=self.stop, state="disabled"
         )
-        self.stop_button.grid(row=7, column=1, sticky="e", pady=(12, 8))
+        self.stop_button.grid(row=10, column=1, sticky="e", pady=(12, 8))
 
         ttk.Label(
             frame,
             text="Uses a 6-second AI audio window, so expect several seconds of delay.",
             wraplength=430,
-        ).grid(row=8, column=0, columnspan=2, sticky="w", pady=(4, 8))
+        ).grid(row=11, column=0, columnspan=2, sticky="w", pady=(4, 8))
         ttk.Label(frame, textvariable=self.status, wraplength=430).grid(
-            row=9, column=0, columnspan=2, sticky="w"
+            row=12, column=0, columnspan=2, sticky="w"
+        )
+        ttk.Label(frame, textvariable=self.cpu_usage).grid(
+            row=13, column=0, columnspan=2, sticky="w", pady=(6, 0)
         )
 
     def _update_percent_label(self, _value: str) -> None:
         amount = self.remove_percent.get()
         self.removal_amount = amount / 100.0
         self.percent_label.configure(text=f"{amount}%")
+
+    def _update_vocal_percent_label(self, _value: str) -> None:
+        amount = self.remove_vocals_percent.get()
+        self.vocal_removal_amount = amount / 100.0
+        self.vocal_percent_label.configure(text=f"{amount}%")
+
+    def _update_bass_percent_label(self, _value: str) -> None:
+        amount = self.remove_bass_percent.get()
+        self.bass_removal_amount = amount / 100.0
+        self.bass_percent_label.configure(text=f"{amount}%")
+
+    def _update_drums_percent_label(self, _value: str) -> None:
+        amount = self.remove_drums_percent.get()
+        self.drums_removal_amount = amount / 100.0
+        self.drums_percent_label.configure(text=f"{amount}%")
 
     def _update_volume(self, value: str) -> None:
         amount = int(round(float(value)))
@@ -255,9 +334,7 @@ class GuitarRemoverApp:
             self.output_level = 0.0
         self.input_queue = queue.Queue(maxsize=256)
         self.output_queue = queue.Queue(maxsize=4)
-        self.status.set(
-            "Loading the guitar-separation model (first run downloads it)..."
-        )
+        self.status.set("Loading the separation model (first run downloads it)...")
         self.start_button.configure(state="disabled")
         self.stop_button.configure(state="normal")
         self.worker = threading.Thread(
@@ -317,12 +394,14 @@ class GuitarRemoverApp:
             device = torch.device("cpu")
             model.to(device)
         model.eval()
-        try:
-            guitar_index = model.sources.index("guitar")
-        except ValueError as error:
-            raise RuntimeError(
-                "The selected Demucs model has no guitar stem."
-            ) from error
+        source_indices: dict[str, int] = {}
+        for source in ("guitar", "vocals", "bass", "drums"):
+            try:
+                source_indices[source] = model.sources.index(source)
+            except ValueError as error:
+                raise RuntimeError(
+                    f"The selected Demucs model has no {source} stem."
+                ) from error
 
         self._notify("Model loaded. Buffering audio...")
         callback_state: dict[str, np.ndarray | int | None] = {
@@ -431,8 +510,17 @@ class GuitarRemoverApp:
                             )
                 finally:
                     self.processing_active.clear()
-                guitar = stems[0, guitar_index].T.cpu().numpy()
-                result = window - self.removal_amount * guitar
+                guitar = stems[0, source_indices["guitar"]].T.cpu().numpy()
+                vocals = stems[0, source_indices["vocals"]].T.cpu().numpy()
+                bass = stems[0, source_indices["bass"]].T.cpu().numpy()
+                drums = stems[0, source_indices["drums"]].T.cpu().numpy()
+                result = (
+                    window
+                    - self.removal_amount * guitar
+                    - self.vocal_removal_amount * vocals
+                    - self.bass_removal_amount * bass
+                    - self.drums_removal_amount * drums
+                )
                 result = apply_playback_gain(result, self.playback_gain)
 
                 if previous_tail is None:
@@ -477,6 +565,11 @@ class GuitarRemoverApp:
                 self.status.set("Buffering Spotify audio for AI separation...")
             else:
                 self.status.set("Waiting for Spotify audio through BlackHole...")
+        now = time.monotonic()
+        if now - self.last_cpu_update >= 1.0:
+            cpu_percent = psutil.cpu_percent(interval=None)
+            self.cpu_usage.set(f"System CPU usage: {cpu_percent:.0f}%")
+            self.last_cpu_update = now
         self._draw_visualizer(input_level, output_level)
         self.root.after(100, self._poll_status)
 

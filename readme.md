@@ -1,11 +1,12 @@
-# Spotify Guitar Remover for macOS
+# Spotify Stem Remover for macOS
 
-This app listens to audio routed into **BlackHole**, estimates the guitar stem
-with Demucs' six-stem AI model, and plays the mix back to a selected output
-device. Set guitar removal anywhere from 0% (unchanged) to 100% (subtract the
-estimated guitar stem). This is live processing with a buffer, not a
-zero-latency effect: expect several seconds of delay, and sound quality depends
-on the recording and model estimate.
+This app listens to audio routed into **BlackHole**, estimates guitar, vocal,
+bass, and drum stems with Demucs' six-stem AI model, and plays the mix back to a
+selected output device. Set removal for each stem independently from 0%
+(unchanged) to 100% (subtract the estimated stem). Vocal, bass, and drums
+removal default to 0%, preserving the existing guitar-only behavior. This is
+live processing with a buffer, not a zero-latency effect: expect several
+seconds of delay, and sound quality depends on the recording and model estimate.
 
 ## Requirements
 
@@ -63,32 +64,36 @@ python guitar_remover.py
    prefers an output device whose name identifies it as headphones, AirPods, or
    a headset; if none is detected, it uses macOS's default output. Confirm the
    selected devices before starting.
-2. Set **Guitar removal** to the desired percentage.
-3. Guitar removal defaults to 100%. **Spotify volume** defaults to 180% and can
-   be adjusted from 100% to 200%. This controls the app's output level, not
-   Spotify's system-wide volume. A soft limiter helps control peaks at higher
-   settings; lower the slider if you hear distortion.
-4. Start Spotify playback, then click **Start** in the app. The first run
+2. Set **Guitar removal**, **Vocal removal**, **Bass guitar removal**, and
+   **Drums removal** independently to the desired percentages. Guitar removal
+   defaults to 100%; the others default to 0%.
+3. **Spotify volume** defaults to 180% and can be adjusted from 100% to 200%.
+   This controls the app's output level, not Spotify's system-wide volume. A
+   soft limiter helps control peaks at higher settings; lower the slider if
+   you hear distortion.
+4. The **CPU usage** readout shows the Mac's overall CPU utilization and
+   refreshes once per second.
+5. Start Spotify playback, then click **Start** in the app. The first run
    downloads the `htdemucs_6s` model and can take a while.
-5. Use **Stop** before changing routing. The initial audio buffer and model
+6. Use **Stop** before changing routing. The initial audio buffer and model
    processing introduce several seconds of delay.
 
-At 100%, the app subtracts the AI-estimated guitar stem from the stereo mix.
-Separation is approximate: distorted guitar, dense arrangements, and guitar
-tones similar to other instruments can leave artifacts or remove some
-non-guitar sound. Lower percentages retain more guitar. The live activity
-display shows the incoming and processed signal levels; the AI indicator pulses
-while a window is being analyzed.
+At 100%, the app subtracts each selected AI-estimated stem from the stereo mix.
+Separation is approximate: distorted guitar, dense arrangements, vocals mixed
+with other sounds, and sounds similar to the selected stem can leave artifacts
+or remove other audio. Lower percentages retain more of the selected stem. The
+live activity display shows the incoming and processed signal levels; the AI
+indicator pulses while a window is being analyzed.
 
 For a cleaner separation, choose **Higher quality (slower)** before starting.
 It asks Demucs to average two shifted analyses rather than one, which can reduce
 separation artifacts at the cost of more processing time. Start with **Balanced**
 if playback becomes choppy; not every Mac can sustain the higher-quality mode
 in real time. These settings cannot fix every source of muddiness, and the
-results depend on the song and how clearly its guitar can be separated.
-If 100% removal sounds too hollow, try a lower percentage to retain some of the
-original mix. If processing falls behind, the app reports an error; stop
-playback and try Balanced.
+results depend on the song and how clearly its guitar, vocals, bass, and drums
+can be separated. If 100% removal sounds too hollow, try a lower percentage to
+retain some of the original mix. If processing falls behind, the app reports an
+error; stop playback and try Balanced.
 
 ## Troubleshooting
 

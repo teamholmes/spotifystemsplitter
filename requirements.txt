@@ -1,4 +1,5 @@
 demucs==4.0.1
 numpy>=1.26,<2
+psutil>=5.9,<8
 sounddevice>=0.5.1,<1
 torch>=2.2
