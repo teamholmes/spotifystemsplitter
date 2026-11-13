@@ -1,4 +1,7 @@
 #!/bin/bash
 set -e
-# . ./bin/activate
-python guitar_remover.py
+cd "$(dirname "$0")"
+if [ -x ".venv/bin/python" ]; then
+    exec .venv/bin/python guitar_remover.py
+fi
+exec python3 guitar_remover.py

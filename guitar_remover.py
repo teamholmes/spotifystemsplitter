@@ -16,6 +16,8 @@ import torch
 from demucs.apply import apply_model
 from demucs.pretrained import get_model
 
+from spotify_midi import DEFAULT_CONFIG_PATH, run_spotify_midi
+
 
 SAMPLE_RATE = 44_100
 CHANNELS = 2
@@ -25,6 +27,7 @@ BLOCK_SIZE = 1_024
 QUALITY_SETTINGS = {
     "Balanced": (1, 0.25),
     "Higher quality (slower)": (2, 0.5),
+    "Highers quality (slower)": (4, 2)
 }
 
 
@@ -43,11 +46,17 @@ def apply_playback_gain(samples: np.ndarray, gain: float) -> np.ndarray:
     return boosted
 
 
+def format_elapsed_time(elapsed_seconds: int) -> str:
+    hours, remainder = divmod(elapsed_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02}:{minutes:02}:{seconds:02}"
+
+
 class GuitarRemoverApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
-        self.root.title("Spotify Stem Remover")
-        self.root.minsize(500, 640)
+        self.root.title("Spotify Stem Remover + AmpliTube MIDI")
+        self.root.minsize(520, 800)
 
         self.input_devices: dict[str, int] = {}
         self.output_devices: dict[str, int] = {}
@@ -63,6 +72,8 @@ class GuitarRemoverApp:
         self.playback_gain = 1.8
         self.status = tk.StringVar(value="Choose audio devices, then start.")
         self.cpu_usage = tk.StringVar(value="System CPU usage: measuring...")
+        self.app_started_at = time.monotonic()
+        self.app_elapsed = tk.StringVar(value="App elapsed: 00:00:00")
         psutil.cpu_percent(interval=None)
         self.last_cpu_update = time.monotonic()
         self.stop_event = threading.Event()
@@ -75,6 +86,12 @@ class GuitarRemoverApp:
         self.input_queue: queue.Queue[np.ndarray] = queue.Queue(maxsize=256)
         self.output_queue: queue.Queue[np.ndarray] = queue.Queue(maxsize=4)
         self.status_queue: queue.Queue[str] = queue.Queue()
+        self.midi_status = tk.StringVar(value="Stopped")
+        self.midi_port = tk.StringVar(value="IAC Driver Bus 1")
+        self.now_playing = tk.StringVar(value="")
+        self.midi_status_queue: queue.Queue[tuple[str, str]] = queue.Queue()
+        self.midi_stop_event = threading.Event()
+        self.midi_worker: threading.Thread | None = None
         self.input_overflow = threading.Event()
         self.worker: threading.Thread | None = None
 
@@ -221,6 +238,50 @@ class GuitarRemoverApp:
         ttk.Label(frame, textvariable=self.cpu_usage).grid(
             row=13, column=0, columnspan=2, sticky="w", pady=(6, 0)
         )
+        ttk.Label(frame, textvariable=self.app_elapsed).grid(
+            row=14, column=0, columnspan=2, sticky="w", pady=(4, 0)
+        )
+
+        midi_frame = ttk.LabelFrame(frame, text="Spotify to AmpliTube MIDI", padding=8)
+        midi_frame.grid(row=15, column=0, columnspan=2, sticky="ew", pady=(12, 0))
+        midi_frame.columnconfigure(1, weight=1)
+        ttk.Label(midi_frame, text="Song title (Ctrl+C to copy into config)").grid(
+            row=0, column=0, sticky="w"
+        )
+        self.now_playing_entry = ttk.Entry(
+            midi_frame, textvariable=self.now_playing, state="readonly", width=42
+        )
+        self.now_playing_entry.grid(row=0, column=1, sticky="ew", padx=(12, 0))
+        self.now_playing_entry.bind("<Control-c>", self._copy_now_playing)
+        self.now_playing_entry.bind("<Control-C>", self._copy_now_playing)
+        ttk.Label(midi_frame, text="MIDI output port").grid(
+            row=1, column=0, sticky="w", pady=(8, 0)
+        )
+        ttk.Entry(midi_frame, textvariable=self.midi_port).grid(
+            row=1, column=1, sticky="ew", padx=(12, 0), pady=(8, 0)
+        )
+        self.midi_start_button = ttk.Button(
+            midi_frame, text="Start Spotify MIDI", command=self.start_midi
+        )
+        self.midi_start_button.grid(row=2, column=0, sticky="w", pady=(8, 4))
+        self.midi_stop_button = ttk.Button(
+            midi_frame,
+            text="Stop MIDI",
+            command=self.stop_midi,
+            state="disabled",
+        )
+        self.midi_stop_button.grid(row=2, column=1, sticky="e", pady=(8, 4))
+        ttk.Label(midi_frame, textvariable=self.midi_status, wraplength=460).grid(
+            row=3, column=0, columnspan=2, sticky="w", pady=(4, 0)
+        )
+
+    def _copy_now_playing(self, _event: tk.Event) -> str:
+        title = self.now_playing.get()
+        if title:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(title)
+            self.midi_status.set("Copied song title to clipboard.")
+        return "break"
 
     def _update_percent_label(self, _value: str) -> None:
         amount = self.remove_percent.get()
@@ -352,6 +413,46 @@ class GuitarRemoverApp:
         self.stop_event.set()
         self.stop_button.configure(state="disabled")
         self.status.set("Stopping after the current audio window...")
+
+    def start_midi(self) -> None:
+        midi_port = self.midi_port.get().strip()
+        if not midi_port:
+            messagebox.showerror(
+                "Choose a MIDI port",
+                "Enter the MIDI output port connected to AmpliTube.",
+                parent=self.root,
+            )
+            return
+
+        self.midi_stop_event.clear()
+        self.midi_status.set("Connecting to Spotify...")
+        self.midi_start_button.configure(state="disabled")
+        self.midi_stop_button.configure(state="normal")
+        self.midi_worker = threading.Thread(
+            target=self._run_spotify_midi,
+            args=(midi_port,),
+            daemon=True,
+        )
+        self.midi_worker.start()
+
+    def stop_midi(self) -> None:
+        self.midi_stop_event.set()
+        self.midi_stop_button.configure(state="disabled")
+        self.midi_status.set("Stopping Spotify MIDI monitor...")
+
+    def _run_spotify_midi(self, midi_port: str) -> None:
+        try:
+            run_spotify_midi(
+                midi_port,
+                DEFAULT_CONFIG_PATH,
+                self.midi_stop_event,
+                lambda text: self.midi_status_queue.put(("status", text)),
+                lambda title: self.midi_status_queue.put(("track", title)),
+            )
+        except Exception as error:
+            self.midi_status_queue.put(("status", f"Error: {error}"))
+        finally:
+            self.midi_status_queue.put(("finished", ""))
 
     def _run_audio(
         self,
@@ -542,6 +643,18 @@ class GuitarRemoverApp:
                 self.status.set(self.status_queue.get_nowait())
             except queue.Empty:
                 break
+        while True:
+            try:
+                message_type, text = self.midi_status_queue.get_nowait()
+            except queue.Empty:
+                break
+            if message_type == "status":
+                self.midi_status.set(text)
+            elif message_type == "track":
+                self.now_playing.set(text)
+            else:
+                self.midi_start_button.configure(state="normal")
+                self.midi_stop_button.configure(state="disabled")
         if self.worker is not None and not self.worker.is_alive():
             self.start_button.configure(state="normal")
             self.stop_button.configure(state="disabled")
@@ -566,6 +679,8 @@ class GuitarRemoverApp:
             else:
                 self.status.set("Waiting for Spotify audio through BlackHole...")
         now = time.monotonic()
+        elapsed_seconds = int(now - self.app_started_at)
+        self.app_elapsed.set(f"App elapsed: {format_elapsed_time(elapsed_seconds)}")
         if now - self.last_cpu_update >= 1.0:
             cpu_percent = psutil.cpu_percent(interval=None)
             self.cpu_usage.set(f"System CPU usage: {cpu_percent:.0f}%")
@@ -638,6 +753,7 @@ class GuitarRemoverApp:
 
     def close(self) -> None:
         self.stop_event.set()
+        self.midi_stop_event.set()
         self.root.destroy()
 
 

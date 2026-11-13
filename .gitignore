@@ -152,6 +152,7 @@ activemq-data/
 # Environments
 .env
 .envrc
+.spotify-token-cache
 .venv
 env/
 venv/

@@ -8,6 +8,11 @@ removal default to 0%, preserving the existing guitar-only behavior. This is
 live processing with a buffer, not a zero-latency effect: expect several
 seconds of delay, and sound quality depends on the recording and model estimate.
 
+The same app can also monitor Spotify's current track and send MIDI program
+changes to AmpliTube 5 and Tone3000 using the song mappings in `config.json`.
+Audio separation and Spotify-to-MIDI monitoring have independent Start/Stop
+controls.
+
 ## Requirements
 
 - macOS, Spotify desktop app, and BlackHole 2ch installed.
@@ -38,7 +43,37 @@ The PyTorch and model packages are large; allow time for installation. If
 Homebrew installed Python 3.11 somewhere else, use that interpreter's path for
 the `venv` command.
 
-## Route Spotify through BlackHole
+## Spotify-to-MIDI setup
+
+1. Create a Spotify app in the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+   and add `http://127.0.0.1:8888/callback` as a Redirect URI.
+2. Copy `.env.example` to `.env` and add the app's client ID and client secret.
+   Keep `.env` private; it is ignored by Git.
+3. Configure an IAC virtual MIDI port in **Audio MIDI Setup** (Window >
+   Show MIDI Studio > IAC Driver) and enable that port as an input in
+   AmpliTube's MIDI preferences. Configure AmpliTube to map MIDI Program
+   Changes to its presets. Enter the port name in the app, defaulting to
+   `IAC Driver Bus 1`.
+4. Edit `config.json` to set the playlist name and song-to-program mappings.
+   AmpliTube program numbers are sent on MIDI channel 1, and Tone3000 program
+   numbers on MIDI channel 6. Unmapped songs use the configured AmpliTube
+   default and Tone3000 program 0.
+
+Click **Start Spotify MIDI** in the app. On first run, Spotify opens a browser
+window for authorization. The app checks the selected playlist and then changes
+the patches when the currently playing track changes. Click **Stop MIDI** to
+end monitoring. The **Song title** field shows the exact Spotify track name;
+focus it and press **Ctrl+C** to copy the title for a `config.json` mapping.
+
+The **App elapsed** timer displays how long the app has been open in
+`HH:MM:SS` format.
+
+Each track change is also posted to the configured ntfy topic with the song
+title and artist. The topic is public to anyone who knows its name, so avoid
+using it for private listening information. A notification/network error is
+shown in the app but does not stop MIDI patch changes.
+
+## Route Spotify audio through BlackHole
 
 1. Open **Audio MIDI Setup** (in Applications > Utilities).
 2. Confirm **BlackHole 2ch** is available. If Spotify also needs to be audible
@@ -60,6 +95,8 @@ With the virtual environment active:
 python guitar_remover.py
 ```
 
+You can also run `./run.sh`; it uses this folder's `.venv` when available.
+
 1. The app defaults to **BlackHole 2ch** for Spotify input when available. It
    prefers an output device whose name identifies it as headphones, AirPods, or
    a headset; if none is detected, it uses macOS's default output. Confirm the
@@ -77,6 +114,9 @@ python guitar_remover.py
    downloads the `htdemucs_6s` model and can take a while.
 6. Use **Stop** before changing routing. The initial audio buffer and model
    processing introduce several seconds of delay.
+7. To also switch instrument patches automatically, configure Spotify API and
+   MIDI as described above, then click **Start Spotify MIDI**. This monitor can
+   run independently of audio separation.
 
 At 100%, the app subtracts each selected AI-estimated stem from the stereo mix.
 Separation is approximate: distorted guitar, dense arrangements, vocals mixed
@@ -103,6 +143,11 @@ error; stop playback and try Balanced.
 - **Spotify is silent:** check that Spotify's output is routed to BlackHole
   (or a Multi-Output Device containing BlackHole), and that the app's output is
   set to headphones/speakers.
+- **Spotify MIDI won't start:** check that `.env` contains the Spotify client
+  ID and secret, the Redirect URI matches the Spotify Developer Dashboard, and
+  `config.json` names a playlist available to your account.
+- **AmpliTube patches do not change:** confirm that the selected MIDI port is
+  enabled as an input in AmpliTube and its Program Change mappings are set up.
 - **Permission or device error:** allow audio access for the terminal/Python in
   macOS Privacy & Security settings and verify the selected devices are still
   connected.
