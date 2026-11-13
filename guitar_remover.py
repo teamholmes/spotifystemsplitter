@@ -19,12 +19,13 @@ from demucs.pretrained import get_model
 from PIL import Image, ImageTk
 
 from spotify_midi import DEFAULT_CONFIG_PATH, run_spotify_midi
+from usage_log import LOG_PATH, UsageLog, weekly_summary
 
 
 SAMPLE_RATE = 44_100
 CHANNELS = 2
-WINDOW_SECONDS = 4
-HOP_SECONDS = 2
+WINDOW_SECONDS = 6
+HOP_SECONDS = 3
 BLOCK_SIZE = 1_024
 QUALITY_SETTINGS = {
     "Balanced": (1, 0.25),
@@ -58,8 +59,10 @@ class GuitarRemoverApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("Spotify Stem Remover + AmpliTube MIDI")
-        self.root.minsize(520, 800)
+        self.root.minsize(520, 960)
 
+        self.usage_log = UsageLog()
+        self.last_usage_summary_update = 0.0
         self.input_devices: dict[str, int] = {}
         self.output_devices: dict[str, int] = {}
         self.remove_percent = tk.IntVar(value=100)
@@ -91,9 +94,7 @@ class GuitarRemoverApp:
         self.midi_status = tk.StringVar(value="Stopped")
         self.midi_port = tk.StringVar(value="IAC Driver Bus 1")
         self.now_playing = tk.StringVar(value="")
-        self.midi_status_queue: queue.Queue[
-            tuple[str, str | bytes | None]
-        ] = queue.Queue()
+        self.midi_status_queue: queue.Queue[tuple[str, object]] = queue.Queue()
         self.album_artwork: ImageTk.PhotoImage | None = None
         self.midi_stop_event = threading.Event()
         self.midi_worker: threading.Thread | None = None
@@ -234,7 +235,7 @@ class GuitarRemoverApp:
 
         ttk.Label(
             frame,
-            text="Uses a 4-second AI audio window with a 2-second overlap.",
+            text="Uses a 6-second AI audio window with a 3-second overlap.",
             wraplength=430,
         ).grid(row=11, column=0, columnspan=2, sticky="w", pady=(4, 8))
         ttk.Label(frame, textvariable=self.status, wraplength=430).grid(
@@ -294,6 +295,59 @@ class GuitarRemoverApp:
         ttk.Label(midi_frame, textvariable=self.midi_status, wraplength=460).grid(
             row=3, column=1, columnspan=2, sticky="w", pady=(4, 0)
         )
+
+        weekly_frame = ttk.LabelFrame(frame, text="This week's app usage", padding=8)
+        weekly_frame.grid(row=16, column=0, columnspan=2, sticky="ew", pady=(12, 0))
+        weekly_frame.columnconfigure(0, weight=1)
+        self.weekly_stats = tk.StringVar(value="Loading weekly summary...")
+        ttk.Label(weekly_frame, textvariable=self.weekly_stats).grid(
+            row=0, column=0, sticky="w"
+        )
+        self.weekly_songs = tk.Text(
+            weekly_frame,
+            height=6,
+            width=56,
+            wrap="word",
+            state="disabled",
+        )
+        self.weekly_songs.grid(row=1, column=0, sticky="ew", pady=(6, 0))
+        weekly_scrollbar = ttk.Scrollbar(
+            weekly_frame, orient="vertical", command=self.weekly_songs.yview
+        )
+        weekly_scrollbar.grid(row=1, column=1, sticky="ns", pady=(6, 0))
+        self.weekly_songs.configure(yscrollcommand=weekly_scrollbar.set)
+        ttk.Label(
+            weekly_frame,
+            text=f"History file: {LOG_PATH} (JSON Lines)",
+            wraplength=460,
+        ).grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        self._refresh_weekly_summary()
+
+    def _refresh_weekly_summary(self) -> None:
+        try:
+            summary = weekly_summary(active_session_id=self.usage_log.session_id)
+        except (OSError, ValueError) as error:
+            self.weekly_stats.set(f"Usage summary unavailable: {error}")
+            return
+
+        self.weekly_stats.set(
+            f"{summary['week_start']} to {summary['week_end']}  |  "
+            f"{summary['sessions']} sessions  |  "
+            f"{format_elapsed_time(summary['duration_seconds'])} total  |  "
+            f"{len(summary['songs'])} track changes"
+        )
+        self.weekly_songs.configure(state="normal")
+        self.weekly_songs.delete("1.0", "end")
+        for song in summary["songs"]:
+            self.weekly_songs.insert(
+                "end",
+                f"{song['timestamp']}  {song['song']} — {song['artist']}\n",
+            )
+        if not summary["songs"]:
+            self.weekly_songs.insert("end", "No songs recorded this week.\n")
+        self.weekly_songs.configure(state="disabled")
+        self.weekly_songs.yview_moveto(1.0)
+        self.last_usage_summary_update = time.monotonic()
 
     def _show_album_artwork(self, artwork: bytes | None) -> None:
         self.artwork_canvas.delete("all")
@@ -500,7 +554,9 @@ class GuitarRemoverApp:
                 DEFAULT_CONFIG_PATH,
                 self.midi_stop_event,
                 lambda text: self.midi_status_queue.put(("status", text)),
-                lambda title: self.midi_status_queue.put(("track", title)),
+                lambda title, artist: self.midi_status_queue.put(
+                    ("track", (title, artist))
+                ),
                 lambda artwork: self.midi_status_queue.put(("artwork", artwork)),
             )
         except Exception as error:
@@ -703,11 +759,24 @@ class GuitarRemoverApp:
             except queue.Empty:
                 break
             if message_type == "status":
-                self.midi_status.set(text)
+                self.midi_status.set(str(text))
             elif message_type == "track":
-                self.now_playing.set(text)
+                if (
+                    isinstance(text, tuple)
+                    and len(text) == 2
+                    and isinstance(text[0], str)
+                    and isinstance(text[1], str)
+                ):
+                    title, artist = text
+                    self.now_playing.set(title)
+                    try:
+                        self.usage_log.record_song(title, artist)
+                    except OSError as error:
+                        self.midi_status.set(f"Usage log write failed: {error}")
+                    self._refresh_weekly_summary()
             elif message_type == "artwork":
-                self._show_album_artwork(text)
+                if isinstance(text, bytes) or text is None:
+                    self._show_album_artwork(text)
             else:
                 self.midi_start_button.configure(state="normal")
                 self.midi_stop_button.configure(state="disabled")
@@ -735,6 +804,8 @@ class GuitarRemoverApp:
             else:
                 self.status.set("Waiting for Spotify audio through BlackHole...")
         now = time.monotonic()
+        if now - self.last_usage_summary_update >= 60:
+            self._refresh_weekly_summary()
         elapsed_seconds = int(now - self.app_started_at)
         self.app_elapsed.set(f"App elapsed: {format_elapsed_time(elapsed_seconds)}")
         if now - self.last_cpu_update >= 1.0:
@@ -808,6 +879,15 @@ class GuitarRemoverApp:
             )
 
     def close(self) -> None:
+        try:
+            self.usage_log.close()
+        except OSError as error:
+            messagebox.showerror(
+                "Unable to save usage log",
+                f"The app could not record its close time in {LOG_PATH}:\n{error}",
+                parent=self.root,
+            )
+            return
         self.stop_event.set()
         self.midi_stop_event.set()
         self.root.destroy()
@@ -815,7 +895,16 @@ class GuitarRemoverApp:
 
 def main() -> None:
     root = tk.Tk()
-    GuitarRemoverApp(root)
+    try:
+        GuitarRemoverApp(root)
+    except (OSError, ValueError) as error:
+        messagebox.showerror(
+            "Unable to start usage logging",
+            f"The app could not open its usage log:\n{error}",
+            parent=root,
+        )
+        root.destroy()
+        return
     root.mainloop()
 
 

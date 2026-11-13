@@ -116,7 +116,7 @@ def run_spotify_midi(
     config_path: str | Path,
     stop_event: threading.Event,
     report_status: Callable[[str], None],
-    report_track: Callable[[str], None],
+    report_track: Callable[[str, str], None],
     report_artwork: Callable[[bytes | None], None],
 ) -> None:
     """Run the Spotify monitor until stopped, reporting progress to the UI."""
@@ -186,7 +186,7 @@ def run_spotify_midi(
                             "program_change", program=tone3000_program, channel=5
                         )
                     )
-                    report_track(track_name)
+                    report_track(track_name, artist)
                     report_artwork(None)
                     previous_track_id = track_id
                     integration_errors: list[str] = []

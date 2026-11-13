@@ -69,6 +69,14 @@ The album artwork is displayed beside the title when Spotify provides it.
 The **App elapsed** timer displays how long the app has been open in
 `HH:MM:SS` format.
 
+The app also appends each launch, graceful close, and Spotify track change
+(including song, artist, and local timestamp) to `usage_log.jsonl` in this
+folder. Each line is a separate JSON object, so the file can be read one event
+at a time. The **This week's app usage** panel summarizes Monday through Sunday
+and lists the week's track changes. The log is excluded from Git and remains on
+this computer. A crash or forced termination cannot write a close event, so
+only gracefully closed sessions have a recorded end time.
+
 Each track change is also posted to the configured ntfy topic with the song
 title and artist. The topic is public to anyone who knows its name, so avoid
 using it for private listening information. A notification/network error is
@@ -112,7 +120,7 @@ You can also run `./run.sh`; it uses this folder's `.venv` when available.
 4. The **CPU usage** readout shows the Mac's overall CPU utilization and
    refreshes once per second.
 5. Start Spotify playback, then click **Start** in the app. Audio is analyzed
-   in 4-second windows with a 2-second overlap. The first run
+   in 6-second windows with a 3-second overlap. The first run
    downloads the `htdemucs_6s` model and can take a while.
 6. Use **Stop** before changing routing. The initial audio buffer and model
    processing introduce several seconds of delay.
