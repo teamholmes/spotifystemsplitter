@@ -8,6 +8,7 @@ import threading
 import time
 import tkinter as tk
 from io import BytesIO
+from tkinter import font as tkfont
 from tkinter import messagebox, ttk
 
 import numpy as np
@@ -58,8 +59,15 @@ def format_elapsed_time(elapsed_seconds: int) -> str:
 class GuitarRemoverApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
+        for font_name in tkfont.names(root):
+            app_font = tkfont.nametofont(font_name, root=root)
+            font_size = app_font.cget("size")
+            if font_size > 1:
+                app_font.configure(size=font_size - 1)
+            elif font_size < -1:
+                app_font.configure(size=font_size + 1)
         self.root.title("Spotify Stem Remover + AmpliTube MIDI")
-        self.root.minsize(520, 960)
+        self.root.minsize(520, 740)
 
         self.usage_log = UsageLog()
         self.last_usage_summary_update = 0.0
@@ -77,8 +85,6 @@ class GuitarRemoverApp:
         self.playback_gain = 1.8
         self.status = tk.StringVar(value="Choose audio devices, then start.")
         self.cpu_usage = tk.StringVar(value="System CPU usage: measuring...")
-        self.app_started_at = time.monotonic()
-        self.app_elapsed = tk.StringVar(value="App elapsed: 00:00:00")
         psutil.cpu_percent(interval=None)
         self.last_cpu_update = time.monotonic()
         self.stop_event = threading.Event()
@@ -107,22 +113,22 @@ class GuitarRemoverApp:
         self.root.after(100, self._poll_status)
 
     def _build_ui(self) -> None:
-        frame = ttk.Frame(self.root, padding=18)
+        frame = ttk.Frame(self.root, padding=10)
         frame.pack(fill="both", expand=True)
         frame.columnconfigure(1, weight=1)
 
-        ttk.Label(frame, text="Spotify input").grid(row=0, column=0, sticky="w", pady=6)
+        ttk.Label(frame, text="Spotify input").grid(row=0, column=0, sticky="w", pady=2)
         self.input_choice = ttk.Combobox(frame, state="readonly")
-        self.input_choice.grid(row=0, column=1, sticky="ew", padx=(12, 0), pady=6)
+        self.input_choice.grid(row=0, column=1, sticky="ew", padx=(12, 0), pady=2)
 
         ttk.Label(frame, text="Headphones / output").grid(
-            row=1, column=0, sticky="w", pady=6
+            row=1, column=0, sticky="w", pady=2
         )
         self.output_choice = ttk.Combobox(frame, state="readonly")
-        self.output_choice.grid(row=1, column=1, sticky="ew", padx=(12, 0), pady=6)
+        self.output_choice.grid(row=1, column=1, sticky="ew", padx=(12, 0), pady=2)
 
         ttk.Button(frame, text="Refresh devices", command=self.refresh_devices).grid(
-            row=2, column=1, sticky="e", pady=(2, 12)
+            row=2, column=1, sticky="e", pady=(0, 4)
         )
 
         ttk.Label(frame, text="Guitar removal").grid(row=3, column=0, sticky="w")
@@ -204,7 +210,7 @@ class GuitarRemoverApp:
         self.volume_label.grid(row=0, column=1, padx=(8, 0))
 
         ttk.Label(frame, text="Separation quality").grid(
-            row=8, column=0, sticky="w", pady=6
+            row=8, column=0, sticky="w", pady=2
         )
         self.quality_choice = ttk.Combobox(
             frame,
@@ -212,59 +218,56 @@ class GuitarRemoverApp:
             values=tuple(QUALITY_SETTINGS),
             width=30,
         )
-        self.quality_choice.set("Highest quality (slowest)")
-        self.quality_choice.grid(row=8, column=1, sticky="w", padx=(12, 0), pady=6)
+        self.quality_choice.set("Higher quality (slower)")
+        self.quality_choice.grid(row=8, column=1, sticky="w", padx=(12, 0), pady=2)
 
         visualizer = ttk.LabelFrame(frame, text="Live audio activity", padding=8)
-        visualizer.grid(row=9, column=0, columnspan=2, sticky="ew", pady=(12, 4))
+        visualizer.grid(row=9, column=0, columnspan=2, sticky="ew", pady=(6, 2))
         visualizer.columnconfigure(0, weight=1)
         self.visualizer = tk.Canvas(
             visualizer,
-            height=112,
+            height=76,
             background="#101722",
             highlightthickness=0,
         )
         self.visualizer.grid(row=0, column=0, sticky="ew")
 
         self.start_button = ttk.Button(frame, text="Start", command=self.start)
-        self.start_button.grid(row=10, column=0, sticky="w", pady=(12, 8))
+        self.start_button.grid(row=10, column=0, sticky="w", pady=(4, 2))
         self.stop_button = ttk.Button(
             frame, text="Stop", command=self.stop, state="disabled"
         )
-        self.stop_button.grid(row=10, column=1, sticky="e", pady=(12, 8))
+        self.stop_button.grid(row=10, column=1, sticky="e", pady=(4, 2))
 
         ttk.Label(
             frame,
             text="Uses a 6-second AI audio window with a 3-second overlap.",
             wraplength=430,
-        ).grid(row=11, column=0, columnspan=2, sticky="w", pady=(4, 8))
+        ).grid(row=11, column=0, columnspan=2, sticky="w", pady=(2, 4))
         ttk.Label(frame, textvariable=self.status, wraplength=430).grid(
             row=12, column=0, columnspan=2, sticky="w"
         )
         ttk.Label(frame, textvariable=self.cpu_usage).grid(
-            row=13, column=0, columnspan=2, sticky="w", pady=(6, 0)
-        )
-        ttk.Label(frame, textvariable=self.app_elapsed).grid(
-            row=14, column=0, columnspan=2, sticky="w", pady=(4, 0)
+            row=13, column=0, columnspan=2, sticky="w", pady=(2, 0)
         )
 
         midi_frame = ttk.LabelFrame(frame, text="Spotify to AmpliTube MIDI", padding=8)
-        midi_frame.grid(row=15, column=0, columnspan=2, sticky="ew", pady=(12, 0))
+        midi_frame.grid(row=14, column=0, columnspan=2, sticky="ew", pady=(6, 0))
         midi_frame.columnconfigure(2, weight=1)
         self.artwork_canvas = tk.Canvas(
             midi_frame,
-            width=144,
-            height=144,
+            width=96,
+            height=96,
             background="#101722",
             highlightthickness=0,
         )
-        self.artwork_canvas.grid(row=0, column=0, rowspan=4, sticky="nw", padx=(0, 12))
+        self.artwork_canvas.grid(row=0, column=0, rowspan=4, sticky="nw", padx=(0, 8))
         self.artwork_canvas.create_text(
-            72,
-            72,
+            48,
+            48,
             text="ALBUM ART",
             fill="#9aa9bd",
-            font=("TkDefaultFont", 9),
+            font=("TkDefaultFont", 8),
         )
         ttk.Label(midi_frame, text="Song title (Ctrl+C to copy into config)").grid(
             row=0, column=1, sticky="w"
@@ -276,51 +279,60 @@ class GuitarRemoverApp:
         self.now_playing_entry.bind("<Control-c>", self._copy_now_playing)
         self.now_playing_entry.bind("<Control-C>", self._copy_now_playing)
         ttk.Label(midi_frame, text="MIDI output port").grid(
-            row=1, column=1, sticky="w", pady=(8, 0)
+            row=1, column=1, sticky="w", pady=(4, 0)
         )
         ttk.Entry(midi_frame, textvariable=self.midi_port).grid(
-            row=1, column=2, sticky="ew", padx=(12, 0), pady=(8, 0)
+            row=1, column=2, sticky="ew", padx=(12, 0), pady=(4, 0)
         )
         self.midi_start_button = ttk.Button(
             midi_frame, text="Start Spotify MIDI", command=self.start_midi
         )
-        self.midi_start_button.grid(row=2, column=1, sticky="w", pady=(8, 4))
+        self.midi_start_button.grid(row=2, column=1, sticky="w", pady=(4, 2))
         self.midi_stop_button = ttk.Button(
             midi_frame,
             text="Stop MIDI",
             command=self.stop_midi,
             state="disabled",
         )
-        self.midi_stop_button.grid(row=2, column=2, sticky="e", pady=(8, 4))
+        self.midi_stop_button.grid(row=2, column=2, sticky="e", pady=(4, 2))
         ttk.Label(midi_frame, textvariable=self.midi_status, wraplength=460).grid(
-            row=3, column=1, columnspan=2, sticky="w", pady=(4, 0)
+            row=3, column=1, columnspan=2, sticky="w", pady=(2, 0)
         )
 
         weekly_frame = ttk.LabelFrame(frame, text="This week's app usage", padding=8)
-        weekly_frame.grid(row=16, column=0, columnspan=2, sticky="ew", pady=(12, 0))
+        weekly_frame.grid(row=15, column=0, columnspan=2, sticky="ew", pady=(6, 0))
         weekly_frame.columnconfigure(0, weight=1)
         self.weekly_stats = tk.StringVar(value="Loading weekly summary...")
         ttk.Label(weekly_frame, textvariable=self.weekly_stats).grid(
             row=0, column=0, sticky="w"
         )
+        self.weekly_top_songs = tk.StringVar(value="Top 5 songs this week: loading...")
+        ttk.Label(
+            weekly_frame,
+            textvariable=self.weekly_top_songs,
+            justify="left",
+            wraplength=460,
+        ).grid(
+            row=1, column=0, sticky="w", pady=(4, 0)
+        )
         self.weekly_songs = tk.Text(
             weekly_frame,
-            height=6,
+            height=3,
             width=56,
             wrap="word",
             state="disabled",
         )
-        self.weekly_songs.grid(row=1, column=0, sticky="ew", pady=(6, 0))
+        self.weekly_songs.grid(row=2, column=0, sticky="ew", pady=(3, 0))
         weekly_scrollbar = ttk.Scrollbar(
             weekly_frame, orient="vertical", command=self.weekly_songs.yview
         )
-        weekly_scrollbar.grid(row=1, column=1, sticky="ns", pady=(6, 0))
+        weekly_scrollbar.grid(row=2, column=1, sticky="ns", pady=(3, 0))
         self.weekly_songs.configure(yscrollcommand=weekly_scrollbar.set)
         ttk.Label(
             weekly_frame,
             text=f"History file: {LOG_PATH} (JSON Lines)",
             wraplength=460,
-        ).grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        ).grid(row=3, column=0, columnspan=2, sticky="w", pady=(4, 0))
         self._refresh_weekly_summary()
 
     def _refresh_weekly_summary(self) -> None:
@@ -334,8 +346,22 @@ class GuitarRemoverApp:
             f"{summary['week_start']} to {summary['week_end']}  |  "
             f"{summary['sessions']} sessions  |  "
             f"{format_elapsed_time(summary['duration_seconds'])} total  |  "
-            f"{len(summary['songs'])} track changes"
+            f"{len(summary['songs'])} track changes\n"
+            f"Previous week ({summary['previous_week']['week_start']} to "
+            f"{summary['previous_week']['week_end']}): "
+            f"{summary['previous_week']['sessions']} sessions  |  "
+            f"{format_elapsed_time(summary['previous_week']['duration_seconds'])} "
+            f"total  |  {len(summary['previous_week']['songs'])} track changes"
         )
+        if summary["top_songs"]:
+            top_songs = "\n".join(
+                f"{index}. {song['song']} — {song['artist']} "
+                f"({song['plays']} plays)"
+                for index, song in enumerate(summary["top_songs"], start=1)
+            )
+            self.weekly_top_songs.set(f"Top 5 songs this week:\n{top_songs}")
+        else:
+            self.weekly_top_songs.set("Top 5 songs this week:\nNo songs recorded.")
         self.weekly_songs.configure(state="normal")
         self.weekly_songs.delete("1.0", "end")
         for song in summary["songs"]:
@@ -354,32 +380,32 @@ class GuitarRemoverApp:
         self.album_artwork = None
         if artwork is None:
             self.artwork_canvas.create_text(
-                72,
-                72,
+                48,
+                48,
                 text="ALBUM ART",
                 fill="#9aa9bd",
-                font=("TkDefaultFont", 9),
+                font=("TkDefaultFont", 8),
             )
             return
 
         try:
             with Image.open(BytesIO(artwork)) as image:
                 cover = image.convert("RGB")
-            cover.thumbnail((144, 144), Image.Resampling.LANCZOS)
+            cover.thumbnail((96, 96), Image.Resampling.LANCZOS)
             self.album_artwork = ImageTk.PhotoImage(cover, master=self.root)
         except (OSError, ValueError) as error:
             self.artwork_canvas.create_text(
-                72,
-                72,
+                48,
+                48,
                 text="ALBUM ART",
                 fill="#9aa9bd",
-                font=("TkDefaultFont", 9),
+                font=("TkDefaultFont", 8),
             )
             self.midi_status.set(f"Unable to display album artwork: {error}")
             return
 
         self.artwork_canvas.create_image(
-            72, 72, image=self.album_artwork, anchor="center"
+            48, 48, image=self.album_artwork, anchor="center"
         )
 
     def _copy_now_playing(self, _event: tk.Event) -> str:
@@ -806,8 +832,6 @@ class GuitarRemoverApp:
         now = time.monotonic()
         if now - self.last_usage_summary_update >= 60:
             self._refresh_weekly_summary()
-        elapsed_seconds = int(now - self.app_started_at)
-        self.app_elapsed.set(f"App elapsed: {format_elapsed_time(elapsed_seconds)}")
         if now - self.last_cpu_update >= 1.0:
             cpu_percent = psutil.cpu_percent(interval=None)
             self.cpu_usage.set(f"System CPU usage: {cpu_percent:.0f}%")
@@ -820,17 +844,17 @@ class GuitarRemoverApp:
         width = max(canvas.winfo_width(), 360)
         canvas.delete("all")
         canvas.create_text(
-            8, 24, text="INPUT", anchor="w", fill="#9aa9bd", font=("TkDefaultFont", 8)
+            8, 18, text="INPUT", anchor="w", fill="#9aa9bd", font=("TkDefaultFont", 7)
         )
         canvas.create_text(
             8,
-            76,
+            56,
             text="OUTPUT",
             anchor="w",
             fill="#9aa9bd",
-            font=("TkDefaultFont", 8),
+            font=("TkDefaultFont", 7),
         )
-        canvas.create_line(70, 50, width - 8, 50, fill="#293545")
+        canvas.create_line(70, 38, width - 8, 38, fill="#293545")
 
         bars = 24
         left, right = 76, width - 10
@@ -854,28 +878,28 @@ class GuitarRemoverApp:
             x1 = x0 + bar_width
             canvas.create_rectangle(
                 x0,
-                36 - input_height / 2,
+                25 - input_height / 2,
                 x1,
-                36 + input_height / 2,
+                25 + input_height / 2,
                 fill="#45d6b2" if input_strength > 0.01 else "#28534f",
                 outline="",
             )
             canvas.create_rectangle(
                 x0,
-                88 - output_height / 2,
+                60 - output_height / 2,
                 x1,
-                88 + output_height / 2,
+                60 + output_height / 2,
                 fill="#72a7ff" if output_strength > 0.01 else "#30415d",
                 outline="",
             )
         if analyzing:
             canvas.create_text(
                 width - 10,
-                10,
+                7,
                 text="AI WORKING",
                 anchor="ne",
                 fill="#ffca72",
-                font=("TkDefaultFont", 8, "bold"),
+                font=("TkDefaultFont", 7, "bold"),
             )
 
     def close(self) -> None:

@@ -66,16 +66,15 @@ end monitoring. The **Song title** field shows the exact Spotify track name;
 focus it and press **Ctrl+C** to copy the title for a `config.json` mapping.
 The album artwork is displayed beside the title when Spotify provides it.
 
-The **App elapsed** timer displays how long the app has been open in
-`HH:MM:SS` format.
-
 The app also appends each launch, graceful close, and Spotify track change
 (including song, artist, and local timestamp) to `usage_log.jsonl` in this
 folder. Each line is a separate JSON object, so the file can be read one event
-at a time. The **This week's app usage** panel summarizes Monday through Sunday
-and lists the week's track changes. The log is excluded from Git and remains on
-this computer. A crash or forced termination cannot write a close event, so
-only gracefully closed sessions have a recorded end time.
+at a time. The **This week's app usage** panel summarizes Monday through Sunday,
+shows the five most-played songs this week, compares session time and track
+changes with the previous week, and lists this week's track changes. The log is
+excluded from Git and remains on this computer. A crash or forced termination
+cannot write a close event, so only gracefully closed sessions have a recorded
+end time.
 
 Each track change is also posted to the configured ntfy topic with the song
 title and artist. The topic is public to anyone who knows its name, so avoid

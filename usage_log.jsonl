@@ -22,3 +22,7 @@
 {"event":"song_played","session_id":"df8bb2a1-cd89-4f9c-b4ce-dee4aa44936b","timestamp":"2026-11-13T23:25:17+00:00","song":"American Woman","artist":"Lenny Kravitz"}
 {"event":"song_played","session_id":"df8bb2a1-cd89-4f9c-b4ce-dee4aa44936b","timestamp":"2026-11-13T23:26:10+00:00","song":"Always On The Run","artist":"Lenny Kravitz"}
 {"event":"song_played","session_id":"df8bb2a1-cd89-4f9c-b4ce-dee4aa44936b","timestamp":"2026-11-13T23:30:43+00:00","song":"Fool for Your Loving - 2011 Remaster","artist":"Whitesnake"}
+{"event":"app_opened","session_id":"b773e896-4460-4eba-8c2f-770f9b37ed11","timestamp":"2026-11-13T23:36:30+00:00"}
+{"event":"app_opened","session_id":"797cfdf1-61bf-4132-b693-dcf57f55936b","timestamp":"2026-11-13T23:38:43+00:00"}
+{"event":"app_opened","session_id":"4f3c35dc-c8e8-4628-b3c2-4bcc5484a60e","timestamp":"2026-11-13T23:40:08+00:00"}
+{"event":"app_opened","session_id":"aa31dd75-8464-41ba-9f6d-fca5d71a279a","timestamp":"2026-11-13T23:41:34+00:00"}

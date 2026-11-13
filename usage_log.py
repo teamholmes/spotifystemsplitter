@@ -125,9 +125,13 @@ def weekly_summary(
     week_end_date = week_start_date + timedelta(days=7)
     week_start = datetime.combine(week_start_date, datetime_time.min).astimezone()
     week_end = datetime.combine(week_end_date, datetime_time.min).astimezone()
+    previous_week_start_date = week_start_date - timedelta(days=7)
+    previous_week_start = datetime.combine(
+        previous_week_start_date, datetime_time.min
+    ).astimezone()
 
     sessions: dict[str, dict[str, datetime | None]] = {}
-    songs: list[dict[str, str]] = []
+    song_events: list[tuple[datetime, str, str]] = []
     for event in _read_events(Path(log_path)):
         try:
             event_time = datetime.fromisoformat(event["timestamp"]).astimezone()
@@ -145,47 +149,72 @@ def weekly_summary(
             if session is not None:
                 session["closed"] = event_time
         elif event_type == "song_played":
-            if week_start <= event_time < week_end:
-                try:
-                    song = event["song"]
-                    artist = event["artist"]
-                except KeyError as error:
-                    raise ValueError(
-                        "Usage log contains a song event without a song or artist."
-                    ) from error
-                if not isinstance(song, str) or not isinstance(artist, str):
-                    raise ValueError(
-                        "Usage log contains a song event with invalid song or artist."
-                    )
-                songs.append(
-                    {
-                        "timestamp": event_time.strftime("%Y-%m-%d %H:%M:%S"),
-                        "song": song,
-                        "artist": artist,
-                    }
+            try:
+                song = event["song"]
+                artist = event["artist"]
+            except KeyError as error:
+                raise ValueError(
+                    "Usage log contains a song event without a song or artist."
+                ) from error
+            if not isinstance(song, str) or not isinstance(artist, str):
+                raise ValueError(
+                    "Usage log contains a song event with invalid song or artist."
                 )
+            song_events.append((event_time, song, artist))
 
-    session_count = 0
-    usage_seconds = 0.0
-    for session_id, session in sessions.items():
-        opened = session["opened"]
-        if opened is None:
-            continue
-        closed = session["closed"]
-        if closed is None and session_id == active_session_id:
-            closed = current_time
-        effective_end = closed or opened
-        interval_start = max(opened, week_start)
-        interval_end = min(effective_end, week_end, current_time)
-        if opened < week_end and effective_end >= week_start:
-            session_count += 1
-        if interval_end > interval_start:
-            usage_seconds += (interval_end - interval_start).total_seconds()
+    def summarize_period(
+        period_start: datetime, period_end: datetime
+    ) -> dict[str, Any]:
+        session_count = 0
+        usage_seconds = 0.0
+        for session_id, session in sessions.items():
+            opened = session["opened"]
+            if opened is None:
+                continue
+            closed = session["closed"]
+            if closed is None and session_id == active_session_id:
+                closed = current_time
+            effective_end = closed or opened
+            interval_start = max(opened, period_start)
+            interval_end = min(effective_end, period_end, current_time)
+            if opened < period_end and effective_end >= period_start:
+                session_count += 1
+            if interval_end > interval_start:
+                usage_seconds += (interval_end - interval_start).total_seconds()
+
+        period_songs = [
+            {
+                "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                "song": song,
+                "artist": artist,
+            }
+            for timestamp, song, artist in song_events
+            if period_start <= timestamp < period_end
+        ]
+        return {
+            "week_start": period_start.date().isoformat(),
+            "week_end": (period_end.date() - timedelta(days=1)).isoformat(),
+            "sessions": session_count,
+            "duration_seconds": int(usage_seconds),
+            "songs": period_songs,
+        }
+
+    current_summary = summarize_period(week_start, week_end)
+    previous_summary = summarize_period(previous_week_start, week_start)
+    song_counts: dict[tuple[str, str], int] = {}
+    for timestamp, song, artist in song_events:
+        if week_start <= timestamp < week_end:
+            key = (song, artist)
+            song_counts[key] = song_counts.get(key, 0) + 1
+    top_songs = [
+        {"song": song, "artist": artist, "plays": count}
+        for (song, artist), count in sorted(
+            song_counts.items(), key=lambda item: (-item[1], item[0][0], item[0][1])
+        )[:5]
+    ]
 
     return {
-        "week_start": week_start_date.isoformat(),
-        "week_end": (week_end_date - timedelta(days=1)).isoformat(),
-        "sessions": session_count,
-        "duration_seconds": int(usage_seconds),
-        "songs": songs,
+        **current_summary,
+        "top_songs": top_songs,
+        "previous_week": previous_summary,
     }
