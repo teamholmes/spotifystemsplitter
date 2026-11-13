@@ -7,6 +7,7 @@ import queue
 import threading
 import time
 import tkinter as tk
+from io import BytesIO
 from tkinter import messagebox, ttk
 
 import numpy as np
@@ -15,19 +16,20 @@ import sounddevice as sd
 import torch
 from demucs.apply import apply_model
 from demucs.pretrained import get_model
+from PIL import Image, ImageTk
 
 from spotify_midi import DEFAULT_CONFIG_PATH, run_spotify_midi
 
 
 SAMPLE_RATE = 44_100
 CHANNELS = 2
-WINDOW_SECONDS = 6
-HOP_SECONDS = 3
+WINDOW_SECONDS = 4
+HOP_SECONDS = 2
 BLOCK_SIZE = 1_024
 QUALITY_SETTINGS = {
     "Balanced": (1, 0.25),
     "Higher quality (slower)": (2, 0.5),
-    "Highers quality (slower)": (4, 2)
+    "Highest quality (slowest)": (4, 0.75),
 }
 
 
@@ -89,7 +91,10 @@ class GuitarRemoverApp:
         self.midi_status = tk.StringVar(value="Stopped")
         self.midi_port = tk.StringVar(value="IAC Driver Bus 1")
         self.now_playing = tk.StringVar(value="")
-        self.midi_status_queue: queue.Queue[tuple[str, str]] = queue.Queue()
+        self.midi_status_queue: queue.Queue[
+            tuple[str, str | bytes | None]
+        ] = queue.Queue()
+        self.album_artwork: ImageTk.PhotoImage | None = None
         self.midi_stop_event = threading.Event()
         self.midi_worker: threading.Thread | None = None
         self.input_overflow = threading.Event()
@@ -204,9 +209,9 @@ class GuitarRemoverApp:
             frame,
             state="readonly",
             values=tuple(QUALITY_SETTINGS),
-            width=24,
+            width=30,
         )
-        self.quality_choice.set("Balanced")
+        self.quality_choice.set("Highest quality (slowest)")
         self.quality_choice.grid(row=8, column=1, sticky="w", padx=(12, 0), pady=6)
 
         visualizer = ttk.LabelFrame(frame, text="Live audio activity", padding=8)
@@ -229,7 +234,7 @@ class GuitarRemoverApp:
 
         ttk.Label(
             frame,
-            text="Uses a 6-second AI audio window, so expect several seconds of delay.",
+            text="Uses a 4-second AI audio window with a 2-second overlap.",
             wraplength=430,
         ).grid(row=11, column=0, columnspan=2, sticky="w", pady=(4, 8))
         ttk.Label(frame, textvariable=self.status, wraplength=430).grid(
@@ -244,35 +249,83 @@ class GuitarRemoverApp:
 
         midi_frame = ttk.LabelFrame(frame, text="Spotify to AmpliTube MIDI", padding=8)
         midi_frame.grid(row=15, column=0, columnspan=2, sticky="ew", pady=(12, 0))
-        midi_frame.columnconfigure(1, weight=1)
+        midi_frame.columnconfigure(2, weight=1)
+        self.artwork_canvas = tk.Canvas(
+            midi_frame,
+            width=144,
+            height=144,
+            background="#101722",
+            highlightthickness=0,
+        )
+        self.artwork_canvas.grid(row=0, column=0, rowspan=4, sticky="nw", padx=(0, 12))
+        self.artwork_canvas.create_text(
+            72,
+            72,
+            text="ALBUM ART",
+            fill="#9aa9bd",
+            font=("TkDefaultFont", 9),
+        )
         ttk.Label(midi_frame, text="Song title (Ctrl+C to copy into config)").grid(
-            row=0, column=0, sticky="w"
+            row=0, column=1, sticky="w"
         )
         self.now_playing_entry = ttk.Entry(
             midi_frame, textvariable=self.now_playing, state="readonly", width=42
         )
-        self.now_playing_entry.grid(row=0, column=1, sticky="ew", padx=(12, 0))
+        self.now_playing_entry.grid(row=0, column=2, sticky="ew", padx=(12, 0))
         self.now_playing_entry.bind("<Control-c>", self._copy_now_playing)
         self.now_playing_entry.bind("<Control-C>", self._copy_now_playing)
         ttk.Label(midi_frame, text="MIDI output port").grid(
-            row=1, column=0, sticky="w", pady=(8, 0)
+            row=1, column=1, sticky="w", pady=(8, 0)
         )
         ttk.Entry(midi_frame, textvariable=self.midi_port).grid(
-            row=1, column=1, sticky="ew", padx=(12, 0), pady=(8, 0)
+            row=1, column=2, sticky="ew", padx=(12, 0), pady=(8, 0)
         )
         self.midi_start_button = ttk.Button(
             midi_frame, text="Start Spotify MIDI", command=self.start_midi
         )
-        self.midi_start_button.grid(row=2, column=0, sticky="w", pady=(8, 4))
+        self.midi_start_button.grid(row=2, column=1, sticky="w", pady=(8, 4))
         self.midi_stop_button = ttk.Button(
             midi_frame,
             text="Stop MIDI",
             command=self.stop_midi,
             state="disabled",
         )
-        self.midi_stop_button.grid(row=2, column=1, sticky="e", pady=(8, 4))
+        self.midi_stop_button.grid(row=2, column=2, sticky="e", pady=(8, 4))
         ttk.Label(midi_frame, textvariable=self.midi_status, wraplength=460).grid(
-            row=3, column=0, columnspan=2, sticky="w", pady=(4, 0)
+            row=3, column=1, columnspan=2, sticky="w", pady=(4, 0)
+        )
+
+    def _show_album_artwork(self, artwork: bytes | None) -> None:
+        self.artwork_canvas.delete("all")
+        self.album_artwork = None
+        if artwork is None:
+            self.artwork_canvas.create_text(
+                72,
+                72,
+                text="ALBUM ART",
+                fill="#9aa9bd",
+                font=("TkDefaultFont", 9),
+            )
+            return
+
+        try:
+            with Image.open(BytesIO(artwork)) as image:
+                cover = image.convert("RGB")
+            cover.thumbnail((144, 144), Image.Resampling.LANCZOS)
+            self.album_artwork = ImageTk.PhotoImage(cover, master=self.root)
+        except (OSError, ValueError) as error:
+            self.artwork_canvas.create_text(
+                72,
+                72,
+                text="ALBUM ART",
+                fill="#9aa9bd",
+                font=("TkDefaultFont", 9),
+            )
+            self.midi_status.set(f"Unable to display album artwork: {error}")
+            return
+
+        self.artwork_canvas.create_image(
+            72, 72, image=self.album_artwork, anchor="center"
         )
 
     def _copy_now_playing(self, _event: tk.Event) -> str:
@@ -448,6 +501,7 @@ class GuitarRemoverApp:
                 self.midi_stop_event,
                 lambda text: self.midi_status_queue.put(("status", text)),
                 lambda title: self.midi_status_queue.put(("track", title)),
+                lambda artwork: self.midi_status_queue.put(("artwork", artwork)),
             )
         except Exception as error:
             self.midi_status_queue.put(("status", f"Error: {error}"))
@@ -652,6 +706,8 @@ class GuitarRemoverApp:
                 self.midi_status.set(text)
             elif message_type == "track":
                 self.now_playing.set(text)
+            elif message_type == "artwork":
+                self._show_album_artwork(text)
             else:
                 self.midi_start_button.configure(state="normal")
                 self.midi_stop_button.configure(state="disabled")

@@ -33,6 +33,21 @@ def post_now_playing(song_name: str, artist: str) -> None:
     response.raise_for_status()
 
 
+def get_album_artwork(track: dict[str, Any]) -> bytes | None:
+    """Download the largest album image provided for a Spotify track."""
+    images = track.get("album", {}).get("images", [])
+    if not images:
+        return None
+
+    image_url = images[0].get("url")
+    if not image_url:
+        return None
+
+    response = requests.get(image_url, timeout=5)
+    response.raise_for_status()
+    return response.content
+
+
 def _normalize_mapping(mapping: Any, name: str) -> dict[str, int]:
     if not isinstance(mapping, dict):
         raise ValueError(f"'{name}' must be an object mapping song names to program numbers")
@@ -102,6 +117,7 @@ def run_spotify_midi(
     stop_event: threading.Event,
     report_status: Callable[[str], None],
     report_track: Callable[[str], None],
+    report_artwork: Callable[[bytes | None], None],
 ) -> None:
     """Run the Spotify monitor until stopped, reporting progress to the UI."""
     load_dotenv(PROJECT_DIR / ".env")
@@ -171,11 +187,21 @@ def run_spotify_midi(
                         )
                     )
                     report_track(track_name)
+                    report_artwork(None)
                     previous_track_id = track_id
+                    integration_errors: list[str] = []
+                    try:
+                        artwork = get_album_artwork(track)
+                    except requests.RequestException as error:
+                        integration_errors.append(f"Album artwork unavailable: {error}")
+                    else:
+                        report_artwork(artwork)
                     try:
                         post_now_playing(track_name, artist)
                     except requests.RequestException as error:
-                        report_status(f"Ntfy notification failed: {error}")
+                        integration_errors.append(f"Ntfy notification failed: {error}")
+                    if integration_errors:
+                        report_status("; ".join(integration_errors))
                     else:
                         report_status(
                             f"Now playing: {track_name} by {artist} "

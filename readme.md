@@ -64,6 +64,7 @@ window for authorization. The app checks the selected playlist and then changes
 the patches when the currently playing track changes. Click **Stop MIDI** to
 end monitoring. The **Song title** field shows the exact Spotify track name;
 focus it and press **Ctrl+C** to copy the title for a `config.json` mapping.
+The album artwork is displayed beside the title when Spotify provides it.
 
 The **App elapsed** timer displays how long the app has been open in
 `HH:MM:SS` format.
@@ -110,7 +111,8 @@ You can also run `./run.sh`; it uses this folder's `.venv` when available.
    you hear distortion.
 4. The **CPU usage** readout shows the Mac's overall CPU utilization and
    refreshes once per second.
-5. Start Spotify playback, then click **Start** in the app. The first run
+5. Start Spotify playback, then click **Start** in the app. Audio is analyzed
+   in 4-second windows with a 2-second overlap. The first run
    downloads the `htdemucs_6s` model and can take a while.
 6. Use **Stop** before changing routing. The initial audio buffer and model
    processing introduce several seconds of delay.
@@ -125,15 +127,16 @@ or remove other audio. Lower percentages retain more of the selected stem. The
 live activity display shows the incoming and processed signal levels; the AI
 indicator pulses while a window is being analyzed.
 
-For a cleaner separation, choose **Higher quality (slower)** before starting.
-It asks Demucs to average two shifted analyses rather than one, which can reduce
-separation artifacts at the cost of more processing time. Start with **Balanced**
-if playback becomes choppy; not every Mac can sustain the higher-quality mode
-in real time. These settings cannot fix every source of muddiness, and the
-results depend on the song and how clearly its guitar, vocals, bass, and drums
-can be separated. If 100% removal sounds too hollow, try a lower percentage to
-retain some of the original mix. If processing falls behind, the app reports an
-error; stop playback and try Balanced.
+For a cleaner separation, choose **Higher quality (slower)** or **Highest
+quality (slowest)** before starting. These settings ask Demucs to average more
+shifted analyses with increased overlap, which can reduce separation artifacts
+at the cost of more processing time. Start with **Balanced** if playback becomes
+choppy; not every Mac can sustain the higher-quality modes in real time. These
+settings cannot fix every source of muddiness, and the results depend on the
+song and how clearly its guitar, vocals, bass, and drums can be separated. If
+100% removal sounds too hollow, try a lower percentage to retain some of the
+original mix. If processing falls behind, the app reports an error; stop
+playback and try Balanced.
 
 ## Troubleshooting
 
