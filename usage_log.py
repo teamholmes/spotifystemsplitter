@@ -1,4 +1,4 @@
-"""Append-only application usage history and current-week summaries."""
+"""Append-only application usage history and weekly summaries."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from typing import Any
 
 
 LOG_PATH = Path(__file__).resolve().with_name("usage_log.jsonl")
+MIN_TRACK_DURATION_SECONDS = 30
 
 
 def _local_now() -> datetime:
@@ -41,7 +42,8 @@ def _read_events(log_path: Path) -> list[dict[str, Any]]:
             session_id = event.get("session_id")
             valid_event = (
                 isinstance(event_type, str)
-                and event_type in {"app_opened", "app_closed", "song_played"}
+                and event_type
+                in {"app_opened", "app_closed", "song_played", "song_stopped"}
                 and isinstance(timestamp, str)
                 and isinstance(session_id, str)
             )
@@ -99,6 +101,19 @@ class UsageLog:
             }
         )
 
+    def record_song_stop(self) -> None:
+        if self._closed:
+            raise RuntimeError(
+                "Cannot record a song stop after the app session has closed."
+            )
+        self._append(
+            {
+                "event": "song_stopped",
+                "session_id": self.session_id,
+                "timestamp": _local_now().isoformat(timespec="seconds"),
+            }
+        )
+
     def close(self) -> None:
         if self._closed:
             return
@@ -118,10 +133,14 @@ def weekly_summary(
     log_path: Path = LOG_PATH,
     now: datetime | None = None,
     active_session_id: str | None = None,
+    week_offset: int = 0,
 ) -> dict[str, Any]:
     current_time = (now or _local_now()).astimezone()
     current_date = current_time.date()
-    week_start_date = current_date - timedelta(days=current_date.weekday())
+    week_start_date = (
+        current_date - timedelta(days=current_date.weekday())
+        + timedelta(weeks=week_offset)
+    )
     week_end_date = week_start_date + timedelta(days=7)
     week_start = datetime.combine(week_start_date, datetime_time.min).astimezone()
     week_end = datetime.combine(week_end_date, datetime_time.min).astimezone()
@@ -131,7 +150,7 @@ def weekly_summary(
     ).astimezone()
 
     sessions: dict[str, dict[str, datetime | None]] = {}
-    song_events: list[tuple[datetime, str, str]] = []
+    session_events: dict[str, list[tuple[datetime, str, str | None, str | None]]] = {}
     for event in _read_events(Path(log_path)):
         try:
             event_time = datetime.fromisoformat(event["timestamp"]).astimezone()
@@ -148,6 +167,13 @@ def weekly_summary(
             session = sessions.get(session_id)
             if session is not None:
                 session["closed"] = event_time
+            session_events.setdefault(session_id, []).append(
+                (event_time, event_type, None, None)
+            )
+        elif event_type == "song_stopped":
+            session_events.setdefault(session_id, []).append(
+                (event_time, event_type, None, None)
+            )
         elif event_type == "song_played":
             try:
                 song = event["song"]
@@ -160,13 +186,41 @@ def weekly_summary(
                 raise ValueError(
                     "Usage log contains a song event with invalid song or artist."
                 )
-            song_events.append((event_time, song, artist))
+            session_events.setdefault(session_id, []).append(
+                (event_time, event_type, song, artist)
+            )
+
+    track_intervals: list[tuple[datetime, datetime, str, str]] = []
+    for session_id, events in session_events.items():
+        events.sort(key=lambda event: event[0])
+        for index, (track_start, event_type, song, artist) in enumerate(events):
+            if event_type != "song_played" or song is None or artist is None:
+                continue
+            track_end = track_start
+            for next_time, next_type, _next_song, _next_artist in events[index + 1 :]:
+                if next_type in {"song_played", "song_stopped", "app_closed"}:
+                    track_end = next_time
+                    break
+            else:
+                if session_id == active_session_id:
+                    track_end = current_time
+            track_end = min(track_end, current_time)
+            if (track_end - track_start).total_seconds() > MIN_TRACK_DURATION_SECONDS:
+                track_intervals.append((track_start, track_end, song, artist))
 
     def summarize_period(
         period_start: datetime, period_end: datetime
     ) -> dict[str, Any]:
         session_count = 0
         usage_seconds = 0.0
+        daily_usage_seconds: dict[date, float] = {}
+        daily_song_seconds: dict[date, dict[tuple[str, str], float]] = {}
+        day = period_start.date()
+        while day < period_end.date():
+            daily_usage_seconds[day] = 0.0
+            daily_song_seconds[day] = {}
+            day += timedelta(days=1)
+
         for session_id, session in sessions.items():
             opened = session["opened"]
             if opened is None:
@@ -181,15 +235,92 @@ def weekly_summary(
                 session_count += 1
             if interval_end > interval_start:
                 usage_seconds += (interval_end - interval_start).total_seconds()
+                day = interval_start.date()
+                while day <= interval_end.date():
+                    day_start = datetime.combine(
+                        day, datetime_time.min, tzinfo=current_time.tzinfo
+                    )
+                    day_end = day_start + timedelta(days=1)
+                    overlap_start = max(interval_start, day_start)
+                    overlap_end = min(interval_end, day_end)
+                    if overlap_end > overlap_start and day in daily_usage_seconds:
+                        daily_usage_seconds[day] += (
+                            overlap_end - overlap_start
+                        ).total_seconds()
+                    day += timedelta(days=1)
 
-        period_songs = [
+        daily_track_changes: dict[date, int] = {}
+        period_songs: list[dict[str, str]] = []
+        song_totals: dict[tuple[str, str], float] = {}
+        for timestamp, _track_end, song, artist in track_intervals:
+            if period_start <= timestamp < period_end:
+                period_songs.append(
+                    {
+                        "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                        "song": song,
+                        "artist": artist,
+                    }
+                )
+                song_date = timestamp.date()
+                daily_track_changes[song_date] = (
+                    daily_track_changes.get(song_date, 0) + 1
+                )
+        period_songs.sort(key=lambda event: event["timestamp"])
+
+        for track_start, track_end, song, artist in track_intervals:
+            interval_start = max(track_start, period_start)
+            interval_end = min(track_end, period_end)
+            if interval_end <= interval_start:
+                continue
+            day = interval_start.date()
+            while day <= interval_end.date():
+                day_start = datetime.combine(
+                    day, datetime_time.min, tzinfo=current_time.tzinfo
+                )
+                day_end = day_start + timedelta(days=1)
+                overlap_start = max(interval_start, day_start)
+                overlap_end = min(interval_end, day_end)
+                if overlap_end > overlap_start and day in daily_song_seconds:
+                    duration = (overlap_end - overlap_start).total_seconds()
+                    key = (song, artist)
+                    daily_song_seconds[day][key] = (
+                        daily_song_seconds[day].get(key, 0.0) + duration
+                    )
+                    song_totals[key] = song_totals.get(key, 0.0) + duration
+                day += timedelta(days=1)
+
+        daily = [
             {
-                "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                "date": day.isoformat(),
+                "duration_seconds": int(duration_seconds),
+                "track_changes": daily_track_changes.get(day, 0),
+                "track_duration_seconds": int(
+                    round(sum(daily_song_seconds[day].values()))
+                ),
+                "songs": [
+                    {
+                        "song": song,
+                        "artist": artist,
+                        "duration_seconds": int(round(song_duration)),
+                    }
+                    for (song, artist), song_duration in sorted(
+                        daily_song_seconds[day].items(),
+                        key=lambda item: (-item[1], item[0][0], item[0][1]),
+                    )
+                ],
+            }
+            for day, duration_seconds in daily_usage_seconds.items()
+        ]
+        daily_song_totals = [
+            {
                 "song": song,
                 "artist": artist,
+                "duration_seconds": int(round(duration_seconds)),
             }
-            for timestamp, song, artist in song_events
-            if period_start <= timestamp < period_end
+            for (song, artist), duration_seconds in sorted(
+                song_totals.items(),
+                key=lambda item: (-item[1], item[0][0], item[0][1]),
+            )
         ]
         return {
             "week_start": period_start.date().isoformat(),
@@ -197,12 +328,14 @@ def weekly_summary(
             "sessions": session_count,
             "duration_seconds": int(usage_seconds),
             "songs": period_songs,
+            "daily": daily,
+            "song_totals": daily_song_totals,
         }
 
     current_summary = summarize_period(week_start, week_end)
     previous_summary = summarize_period(previous_week_start, week_start)
     song_counts: dict[tuple[str, str], int] = {}
-    for timestamp, song, artist in song_events:
+    for timestamp, _track_end, song, artist in track_intervals:
         if week_start <= timestamp < week_end:
             key = (song, artist)
             song_counts[key] = song_counts.get(key, 0) + 1

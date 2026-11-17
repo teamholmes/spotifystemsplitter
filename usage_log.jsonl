@@ -26,3 +26,51 @@
 {"event":"app_opened","session_id":"797cfdf1-61bf-4132-b693-dcf57f55936b","timestamp":"2026-11-13T23:38:43+00:00"}
 {"event":"app_opened","session_id":"4f3c35dc-c8e8-4628-b3c2-4bcc5484a60e","timestamp":"2026-11-13T23:40:08+00:00"}
 {"event":"app_opened","session_id":"aa31dd75-8464-41ba-9f6d-fca5d71a279a","timestamp":"2026-11-13T23:41:34+00:00"}
+{"event":"app_opened","session_id":"a899617f-746b-44f2-a3fa-e6ad9335699c","timestamp":"2026-11-14T22:03:35+00:00"}
+{"event":"app_opened","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:25:07+00:00"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:25:26+00:00","song":"Carry Your Load - 2011 Remaster","artist":"Whitesnake"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:25:37+00:00","song":"Miracle Man","artist":"Ozzy Osbourne"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:29:25+00:00","song":"Mr. Brownstone","artist":"Guns N' Roses"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:32:06+00:00","song":"Gods Of War","artist":"Def Leppard"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:34:57+00:00","song":"I Believe In A Thing Called Love","artist":"The Darkness"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:38:24+00:00","song":"Bark at the Moon","artist":"Ozzy Osbourne"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:42:42+00:00","song":"Walk This Way","artist":"Aerosmith"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:42:48+00:00","song":"Would? (2022 Remaster)","artist":"Alice In Chains"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:46:15+00:00","song":"Stillborn","artist":"Black Label Society"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:46:30+00:00","song":"Thunder Kiss '65","artist":"White Zombie"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:48:04+00:00","song":"Always On The Run","artist":"Lenny Kravitz"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T19:49:06+00:00","song":"We Die Young","artist":"Alice In Chains"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T20:11:21+00:00","song":"Miracle Man","artist":"Ozzy Osbourne"}
+{"event":"song_played","session_id":"5d43b2cd-1b44-49e6-96bd-f0b8c1cc0568","timestamp":"2026-11-15T20:14:47+00:00","song":"I Don't Know","artist":"Ozzy Osbourne"}
+{"event":"app_opened","session_id":"e797ab31-d510-451d-9f25-bad8403c1c4d","timestamp":"2026-11-16T16:44:49+00:00"}
+{"event":"app_closed","session_id":"e797ab31-d510-451d-9f25-bad8403c1c4d","timestamp":"2026-11-16T16:45:04+00:00","duration_seconds":14.585}
+{"event":"app_opened","session_id":"61ad45cd-b4e9-4985-938b-c3842d53008b","timestamp":"2026-11-16T16:46:13+00:00"}
+{"event":"app_closed","session_id":"61ad45cd-b4e9-4985-938b-c3842d53008b","timestamp":"2026-11-16T16:49:56+00:00","duration_seconds":223.667}
+{"event":"app_opened","session_id":"5f421c29-dd53-4ddb-ab7b-6c1a13e4f716","timestamp":"2026-11-16T16:53:15+00:00"}
+{"event":"app_closed","session_id":"5f421c29-dd53-4ddb-ab7b-6c1a13e4f716","timestamp":"2026-11-16T16:54:00+00:00","duration_seconds":44.438}
+{"event":"app_opened","session_id":"3efb6e91-30e1-4301-b885-b216a084dd05","timestamp":"2026-11-16T16:54:41+00:00"}
+{"event":"song_played","session_id":"3efb6e91-30e1-4301-b885-b216a084dd05","timestamp":"2026-11-16T16:57:33+00:00","song":"Miracle Man","artist":"Ozzy Osbourne"}
+{"event":"song_played","session_id":"3efb6e91-30e1-4301-b885-b216a084dd05","timestamp":"2026-11-16T17:01:17+00:00","song":"Mr. Brownstone","artist":"Guns N' Roses"}
+{"event":"song_played","session_id":"3efb6e91-30e1-4301-b885-b216a084dd05","timestamp":"2026-11-16T17:05:01+00:00","song":"Gods Of War","artist":"Def Leppard"}
+{"event":"song_played","session_id":"3efb6e91-30e1-4301-b885-b216a084dd05","timestamp":"2026-11-16T17:05:07+00:00","song":"I Believe In A Thing Called Love","artist":"The Darkness"}
+{"event":"song_played","session_id":"3efb6e91-30e1-4301-b885-b216a084dd05","timestamp":"2026-11-16T17:08:41+00:00","song":"Man in the Box","artist":"Alice In Chains"}
+{"event":"song_stopped","session_id":"3efb6e91-30e1-4301-b885-b216a084dd05","timestamp":"2026-11-16T17:11:11+00:00"}
+{"event":"app_opened","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T20:51:50+00:00"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T20:52:59+00:00","song":"Miracle Man","artist":"Ozzy Osbourne"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T20:56:42+00:00","song":"Still Of The Night - 2018 Remaster","artist":"Whitesnake"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:03:09+00:00","song":"Rebel Yell - Remastered 1999","artist":"Billy Idol"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:05:49+00:00","song":"Sweet Emotion","artist":"Aerosmith"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:09:47+00:00","song":"Symphony Of Destruction - Remastered 2012","artist":"Megadeth"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:12:18+00:00","song":"Hard To Handle","artist":"The Black Crowes"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:13:56+00:00","song":"Bark at the Moon","artist":"Ozzy Osbourne"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:16:56+00:00","song":"White Wedding - Pt. 1","artist":"Billy Idol"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:19:58+00:00","song":"Eat The Rich","artist":"Aerosmith"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:23:25+00:00","song":"Them Bones (2022 Remaster)","artist":"Alice In Chains"}
+{"event":"song_stopped","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:24:57+00:00"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:30:45+00:00","song":"Wasted Years - 2015 Remaster","artist":"Iron Maiden"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:31:06+00:00","song":"Thunder Kiss '65","artist":"White Zombie"}
+{"event":"song_played","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:36:01+00:00","song":"Miracle Man","artist":"Ozzy Osbourne"}
+{"event":"song_stopped","session_id":"c6a6178a-edd2-4925-b2e4-e80f273c8750","timestamp":"2026-11-16T21:38:05+00:00"}
+{"event":"app_opened","session_id":"f3800a23-b92c-4575-b856-4dc87d448a6a","timestamp":"2026-11-17T08:03:27+00:00"}
+{"event":"app_closed","session_id":"f3800a23-b92c-4575-b856-4dc87d448a6a","timestamp":"2026-11-17T08:05:28+00:00","duration_seconds":120.549}
+{"event":"app_opened","session_id":"c0740920-6eed-4058-adc7-0ff20a6e1b54","timestamp":"2026-11-17T08:07:51+00:00"}

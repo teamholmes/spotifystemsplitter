@@ -69,9 +69,15 @@ The album artwork is displayed beside the title when Spotify provides it.
 The app also appends each launch, graceful close, and Spotify track change
 (including song, artist, and local timestamp) to `usage_log.jsonl` in this
 folder. Each line is a separate JSON object, so the file can be read one event
-at a time. The **This week's app usage** panel summarizes Monday through Sunday,
-shows the five most-played songs this week, compares session time and track
-changes with the previous week, and lists this week's track changes. The log is
+at a time. Open the **Weekly History** tab for a Monday-through-Sunday summary,
+the five most-played songs, and a daily stacked bar chart with estimated time
+per song. Hover over a colored bar segment to see its song, artist, and
+estimated time. A track counts toward history only when its estimated play time
+is more than 30 seconds. Song time is estimated from the time between track
+changes, and ends when the MIDI monitor stops or the app closes; pauses and
+gaps in playback may make it differ from actual listening time. Use **Previous
+week** and **Next week** to browse the saved history, or **This week** to
+return to the current week. Album art remains on the Player tab. The log is
 excluded from Git and remains on this computer. A crash or forced termination
 cannot write a close event, so only gracefully closed sessions have a recorded
 end time.
@@ -126,6 +132,12 @@ You can also run `./run.sh`; it uses this folder's `.venv` when available.
 7. To also switch instrument patches automatically, configure Spotify API and
    MIDI as described above, then click **Start Spotify MIDI**. This monitor can
    run independently of audio separation.
+8. Open the **Metronome** tab to choose a tempo from 70 to 120 BPM, select
+   headphones or a speaker, and click **Start**. Enable **Also play through
+   BlackHole** to send the metronome to BlackHole and the selected output at
+   the same time. Click **Refresh devices** on the Player tab if you change
+   connected audio devices. The metronome runs independently of audio
+   separation and Spotify MIDI.
 
 At 100%, the app subtracts each selected AI-estimated stem from the stereo mix.
 Separation is approximate: distorted guitar, dense arrangements, vocals mixed
