@@ -74,3 +74,40 @@
 {"event":"app_opened","session_id":"f3800a23-b92c-4575-b856-4dc87d448a6a","timestamp":"2026-11-17T08:03:27+00:00"}
 {"event":"app_closed","session_id":"f3800a23-b92c-4575-b856-4dc87d448a6a","timestamp":"2026-11-17T08:05:28+00:00","duration_seconds":120.549}
 {"event":"app_opened","session_id":"c0740920-6eed-4058-adc7-0ff20a6e1b54","timestamp":"2026-11-17T08:07:51+00:00"}
+{"event":"app_opened","session_id":"58a15ade-914b-47ab-94c4-a7c63592b253","timestamp":"2026-11-17T20:28:15+00:00"}
+{"event":"app_opened","session_id":"d7dbd48f-5259-4b61-818a-e7dfe3f79db2","timestamp":"2026-11-17T20:44:42+00:00"}
+{"event":"song_played","session_id":"d7dbd48f-5259-4b61-818a-e7dfe3f79db2","timestamp":"2026-11-17T20:44:45+00:00","song":"Bleed The Freak","artist":"Alice In Chains"}
+{"event":"song_stopped","session_id":"d7dbd48f-5259-4b61-818a-e7dfe3f79db2","timestamp":"2026-11-17T20:47:12+00:00"}
+{"event":"song_played","session_id":"d7dbd48f-5259-4b61-818a-e7dfe3f79db2","timestamp":"2026-11-17T21:17:24+00:00","song":"Bleed The Freak","artist":"Alice In Chains"}
+{"event":"song_played","session_id":"d7dbd48f-5259-4b61-818a-e7dfe3f79db2","timestamp":"2026-11-17T21:36:41+00:00","song":"I Can't Remember","artist":"Alice In Chains"}
+{"event":"song_played","session_id":"d7dbd48f-5259-4b61-818a-e7dfe3f79db2","timestamp":"2026-11-17T21:37:28+00:00","song":"Miracle Man","artist":"Ozzy Osbourne"}
+{"event":"song_played","session_id":"d7dbd48f-5259-4b61-818a-e7dfe3f79db2","timestamp":"2026-11-17T21:41:15+00:00","song":"Mr. Brownstone","artist":"Guns N' Roses"}
+{"event":"song_played","session_id":"d7dbd48f-5259-4b61-818a-e7dfe3f79db2","timestamp":"2026-11-17T21:42:18+00:00","song":"Bleed The Freak","artist":"Alice In Chains"}
+{"event":"song_played","session_id":"d7dbd48f-5259-4b61-818a-e7dfe3f79db2","timestamp":"2026-11-17T21:46:16+00:00","song":"Layla","artist":"Derek & The Dominos"}
+{"event":"song_stopped","session_id":"d7dbd48f-5259-4b61-818a-e7dfe3f79db2","timestamp":"2026-11-17T21:49:28+00:00"}
+{"event":"app_opened","session_id":"28350b64-72f4-4182-8680-faf48d30de52","timestamp":"2026-11-18T18:54:14+00:00"}
+{"event":"song_played","session_id":"28350b64-72f4-4182-8680-faf48d30de52","timestamp":"2026-11-18T18:54:43+00:00","song":"Bleed The Freak","artist":"Alice In Chains"}
+{"event":"song_played","session_id":"28350b64-72f4-4182-8680-faf48d30de52","timestamp":"2026-11-18T18:58:54+00:00","song":"Bleed The Freak","artist":"Alice In Chains"}
+{"event":"app_opened","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:22:49+00:00"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:23:04+00:00","song":"Miracle Man","artist":"Ozzy Osbourne"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:26:46+00:00","song":"Them Bones (2022 Remaster)","artist":"Alice In Chains"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:29:17+00:00","song":"There's No Other Way - Single Version","artist":"Blur"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:29:28+00:00","song":"Them Bones (2022 Remaster)","artist":"Alice In Chains"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:31:58+00:00","song":"There's No Other Way - Single Version","artist":"Blur"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:35:20+00:00","song":"Crying In The Rain - 1987 Version / 2018 Remaster","artist":"Whitesnake"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:38:15+00:00","song":"Man in the Box","artist":"Alice In Chains"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:43:01+00:00","song":"Fell On Black Days","artist":"Soundgarden"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:43:17+00:00","song":"I Believe In A Thing Called Love","artist":"The Darkness"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:46:53+00:00","song":"Man in the Box","artist":"Alice In Chains"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:47:04+00:00","song":"Stillborn","artist":"Black Label Society"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:50:20+00:00","song":"Back In Black","artist":"AC/DC"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:54:39+00:00","song":"Would? (2022 Remaster)","artist":"Alice In Chains"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:58:05+00:00","song":"Stillborn","artist":"Black Label Society"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T19:58:16+00:00","song":"Bark at the Moon","artist":"Ozzy Osbourne"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T20:01:12+00:00","song":"Monkey Business","artist":"Skid Row"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T20:04:23+00:00","song":"Jeremy","artist":"Pearl Jam"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T20:09:53+00:00","song":"Sweet Emotion","artist":"Aerosmith"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T20:14:06+00:00","song":"Gods Of War","artist":"Def Leppard"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T20:20:02+00:00","song":"Supersonic","artist":"Oasis"}
+{"event":"song_played","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T20:24:37+00:00","song":"Thunder Kiss '65","artist":"White Zombie"}
+{"event":"song_stopped","session_id":"8e3b1c23-4bb7-483c-a523-b3319f2a73c2","timestamp":"2026-11-18T20:27:00+00:00"}

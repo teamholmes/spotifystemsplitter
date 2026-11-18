@@ -66,10 +66,12 @@ end monitoring. The **Song title** field shows the exact Spotify track name;
 focus it and press **Ctrl+C** to copy the title for a `config.json` mapping.
 The album artwork is displayed beside the title when Spotify provides it.
 
-The app also appends each launch, graceful close, and Spotify track change
+The app also appends each launch, graceful close, and configured Spotify track
 (including song, artist, and local timestamp) to `usage_log.jsonl` in this
-folder. Each line is a separate JSON object, so the file can be read one event
-at a time. Open the **Weekly History** tab for a Monday-through-Sunday summary,
+folder. A track must match a song name in either MIDI mapping in `config.json`,
+case-insensitively, to be included in history. Each line is a separate JSON
+object, so the file can be read one event at a time. Open the **Weekly History**
+tab for a Monday-through-Sunday summary,
 the five most-played songs, and a daily stacked bar chart with estimated time
 per song. Hover over a colored bar segment to see its song, artist, and
 estimated time. A track counts toward history only when its estimated play time

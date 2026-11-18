@@ -22,7 +22,12 @@ from demucs.apply import apply_model
 from demucs.pretrained import get_model
 from PIL import Image, ImageTk
 
-from spotify_midi import DEFAULT_CONFIG_PATH, run_spotify_midi
+from spotify_midi import (
+    DEFAULT_CONFIG_PATH,
+    is_song_configured,
+    load_config,
+    run_spotify_midi,
+)
 from usage_log import LOG_PATH, UsageLog, weekly_summary
 
 
@@ -1261,9 +1266,24 @@ class GuitarRemoverApp:
                     title, artist = text
                     self.now_playing.set(title)
                     try:
-                        self.usage_log.record_song(title, artist)
-                    except OSError as error:
-                        self.midi_status.set(f"Usage log write failed: {error}")
+                        config = load_config(DEFAULT_CONFIG_PATH)
+                    except (OSError, ValueError) as error:
+                        self.midi_status.set(
+                            f"Unable to check song configuration; history not "
+                            f"recorded: {error}"
+                        )
+                    else:
+                        if is_song_configured(title, config):
+                            try:
+                                self.usage_log.record_song(title, artist)
+                            except OSError as error:
+                                self.midi_status.set(
+                                    f"Usage log write failed: {error}"
+                                )
+                        else:
+                            self.midi_status.set(
+                                f"{title} is not in config.json; not added to history."
+                            )
                     self._refresh_weekly_summary()
             elif message_type == "artwork":
                 if isinstance(text, bytes) or text is None:

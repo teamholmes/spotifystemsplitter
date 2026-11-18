@@ -101,6 +101,15 @@ def get_patch_for_song(
     return default_program
 
 
+def is_song_configured(song_name: str, config: dict[str, Any]) -> bool:
+    normalized_name = song_name.casefold()
+    return any(
+        configured_song.casefold() == normalized_name
+        for mapping_name in ("song_to_patch", "tone3000_song_to_patch")
+        for configured_song in config[mapping_name]
+    )
+
+
 def _open_midi_output(port_name: str) -> mido.ports.BaseOutput:
     try:
         outputs = mido.get_output_names()
